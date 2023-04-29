@@ -49,6 +49,8 @@ theme_gtsummary_compact()
 dataS <- read_sav("Data/FINAL FILE FOR ANALYSIS 25.04.23.sav")
 
 data_bif <- dataS %>%
+  mutate(DEATH = case_when(DEATH > 0 ~ 1,
+                           TRUE ~ 0)) %>%
   transmute(Study_ID = as.numeric(STUDY_ID),
             HospitalNumber = as.numeric(HospitalNumber),
             Age = as.numeric(Age),
@@ -200,16 +202,16 @@ Followups <- c("Mortality_FU", "CV_Mortality_FU", "TLR_FU", "TLR_MI_FU", "Compos
 
 doParallel::registerDoParallel()
 
-foreach(i=1:5, .packages = c("tidyverse", "gtsummary", "survival", "gt", "dplyr")) %dopar% {
+foreach(i=1:5) %dopar% {
 
 UV_T[[i]] <- gtsummary::tbl_uvregression(data_bif,
                  method = survival::coxph,
                  y = survival::Surv(time = !!sym(Followups[i]), event = !!sym(Outcomes[i])),
                  exponentiate = T,
                  include = c(Age, Sex, Presentation, Multivessel_PCI, BIF_Medina_Classification, True_Bif, Treatment_Strat, Frailty_Sc, Frailty_Grp, DCB_DES, Duration_Procedure, Pressure_Wire, Imaging, ContrastinMLS, Fluro_Time_mins, Rad_Dose_Area_Product, Rad_Skin_Dose, PMHx_Hyperchol, PMHx_HTN, PMHx_PVD, PMHx_CVE, PMHx_MI, PMHx_PCI, PMHx_CABG, PMHx_HF, PMHx_Angina, FHx_CAD, PMHx_Asthma, PMHx_COPD, PMHx_DM, Smok_Stat, Creatinine, Vessel_Tx, Heavy_Calc, Diffuse_Dx, Tortuosity, denovo_VesselDiam, denovo_LesionLgth, Vessel_GT3mm, SB_VesselDiam, SB_LesionLgth)) %>%
-  modify_header(label = paste0("**",Outcomes[i],"**", " (Univariate)")) %>%
-  bold_p() %>%
-  as_gt()
+  gtsummary::modify_header(label = paste0("**",Outcomes[i],"**", " (Univariate)")) %>%
+  gtsummary::bold_p() %>%
+  gtsummary::as_gt()
 
 gt::gtsave(UV_T[[i]], paste0("UV_Tables/" , Outcomes[i], "_UV.html"))
 
@@ -255,7 +257,7 @@ data_ps_bif <- data_bif %>%
 set.seed(1234)
 
 match.it <- matchit(DCB_DES ~ Age+ Sex+ Presentation+ BIF_Medina_Classification+ True_Bif+ Frailty_Sc+ Duration_Procedure+ PMHx_Hyperchol+ PMHx_HTN+ PMHx_PVD+ PMHx_CVE+ PMHx_MI+ PMHx_CABG+ PMHx_HF+ PMHx_Angina+ FHx_CAD+ PMHx_Asthma+ PMHx_COPD+ PMHx_DM+ Smok_Stat+ Creatinine+ Vessel_Tx+ Heavy_Calc+ Tortuosity
-                    , data = data_ps_bif, method="full", ratio=1) #Full matching technique
+                    , data = data_ps_bif, method="optimal", ratio=1) #Full matching technique
 a <- summary(match.it)
 
 #verify match 
@@ -310,17 +312,25 @@ print(plot5)
 dev.off()
 ```
 
-```{r Multivariate for All Cause}
+```{r Multivariate for All Outcomes}
+library(furrr)
+
+MV_T <- list()
+
+Outcomes <- c("Mortality", "CV_Mortality", "TLR", "TLR_MI", "Composite")
+Followups <- c("Mortality_FU", "CV_Mortality_FU", "TLR_FU", "TLR_MI_FU", "Composite_FU")
+
+doParallel::registerDoParallel()
+
 data_bif_mv <- data_bif %>%
-  select(DCB_DES, Age, Sex, Presentation, BIF_Medina_Classification, True_Bif, Frailty_Sc, Duration_Procedure, PMHx_Hyperchol, PMHx_HTN, PMHx_PVD, PMHx_CVE, PMHx_MI, PMHx_CABG, PMHx_HF, PMHx_Angina, FHx_CAD, PMHx_Asthma, PMHx_COPD, PMHx_DM, Smok_Stat, Creatinine, Vessel_Tx, Heavy_Calc, Tortuosity, Mortality, Mortality_FU) %>%
+  select(DCB_DES, Age, Sex, Presentation, BIF_Medina_Classification, True_Bif, Frailty_Sc, Duration_Procedure, PMHx_Hyperchol, PMHx_HTN, PMHx_PVD, PMHx_CVE, PMHx_MI, PMHx_CABG, PMHx_HF, PMHx_Angina, FHx_CAD, PMHx_Asthma, PMHx_COPD, PMHx_DM, Smok_Stat, Creatinine, Vessel_Tx, Heavy_Calc, Tortuosity, Mortality, Mortality_FU, CV_Mortality, CV_Mortality_FU, TLR, TLR_FU, TLR_MI, TLR_MI_FU, Composite, Composite_FU) %>%
   drop_na()
+  
+res.cox <- future_map(Outcomes, ~coxph(as.formula(paste0("Surv(time = ",.x ,"_FU", ", event = ", .x, ") ~ DCB_DES +  Age+ Sex+ Presentation+ BIF_Medina_Classification+ True_Bif+ Frailty_Sc+ Duration_Procedure+ PMHx_Hyperchol+ PMHx_HTN+ PMHx_PVD+ PMHx_CVE+ PMHx_MI+ PMHx_CABG+ PMHx_HF+ PMHx_Angina+ FHx_CAD+ PMHx_Asthma+ PMHx_COPD+ PMHx_DM+ Smok_Stat+ Creatinine+ Vessel_Tx+ Heavy_Calc+ Tortuosity")), data =  data_bif_mv)) 
 
-res.cox1a <- coxph(Surv(Mortality_FU+ Mortality) ~ DCB_DES +  Age+ Sex+ Presentation+ BIF_Medina_Classification+ True_Bif+ Frailty_Sc+ Duration_Procedure+ PMHx_Hyperchol+ PMHx_HTN+ PMHx_PVD+ PMHx_CVE+ PMHx_MI+ PMHx_CABG+ PMHx_HF+ PMHx_Angina+ FHx_CAD+ PMHx_Asthma+ PMHx_COPD+ PMHx_DM+ Smok_Stat+ Creatinine+ Vessel_Tx+ Heavy_Calc+ Tortuosity, data =  data_bif_mv)
+step_reg <- future_map(1:5, ~stats::step(res.cox[[.x]], direction='both', scope=list(lower = Surv(time = !!sym(Followups[.x]), event = !!sym(Outcomes[.x])) ~ DCB_DES, upper = stats::formula(res.cox[[.x]])), trace=0))
 
-step_reg <- step(res.cox1a, direction='both', scope=list(lower = Surv(Mortality_FU + Mortality) ~ DCB_DES, upper = formula(res.cox1a)), trace=0)
-
-
-MV_T <- tbl_regression(step_reg, 
+MV_T <- map(1:5, ~gtsummary::tbl_regression(step_reg[[.x]], 
                exponentiate = T, 
                #show_single_row = c(DCB_DES, PMHx_CVE, PMHx_HF, FHx_CAD),
                #label = list(DCB_DES ~ "DCB/DES [DES]",
@@ -330,10 +340,11 @@ MV_T <- tbl_regression(step_reg,
                        #      GFR ~ "eGFR",
                           #   Frailty_Sc ~ "Frailty Score")
                ) %>%
-  bold_p() %>%
-  modify_header(label = "All-Cause Mortality (Multivariate)") %>%
-  add_n() %>%
-  as_gt()
+  gtsummary::bold_p() %>%
+  gtsummary::modify_header(label = paste0("**",Outcomes[.x],"**", " (Multivariate)")) %>%
+  gtsummary::add_n() %>%
+  gtsummary::as_gt())
 
-gtsave(MV_T, "MV_Tables/Multivariate-Mortality.html")
+map(1:5, ~gt::gtsave(MV_T[[.x]], paste0("MV_Tables/" , Outcomes[.x], "_MV.html")))
+
 ```
