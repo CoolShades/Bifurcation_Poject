@@ -10,7 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r Ensure Folders Exist, eval=FALSE, include=FALSE}
-Folders_Req <- c("Data", "Normality_Testing", "Table1", "UV_Tables", "MV_Tables", "Cum_Haz_Plots_UnMatched", "CumHazPlots_Bif_True", "CumHazPlots_Bif_False", "CumHazPlots_GT3mm_True", "CumHazPlots_GT3mm_False", "CumHazPlots_GT65_True", "CumHazPlots_GT65_False", "CumHazPlots_Male", "CumHazPlots_Female", "Matching_Files", "Cum_Haz_Plots_Matched", "Cum_Haz_Plots_Matched_BifT", "Cum_Haz_Plots_Matched_BifF", "Cum_Haz_Plots_Matched_GT3mm_T", "Cum_Haz_Plots_Matched_GT3mm_F", "Cum_Haz_Plots_Matched_GT65", "Cum_Haz_Plots_Matched_LT65", "Cum_Haz_Plots_Matched_Male", "Cum_Haz_Plots_Matched_Female")
+Folders_Req <- c("Data", "Normality_Testing", "Table1", "UV_Tables", "MV_Tables", "Cum_Haz_Plots_UnMatched", "Matching_Files", "Cum_Haz_Plots_Matched")
 
 for (i in 1:length(Folders_Req)) {
 
@@ -46,6 +46,8 @@ theme_gtsummary_compact()
 ```
 
 ```{r}
+Max_FU_Date = as.POSIXct("2021-03-31", tz = "London/Europe")
+
 dataS <- read_sav("Data/File with extra variables including lymphocytes!.sav")
 
 data_bif <- dataS %>%
@@ -173,10 +175,23 @@ data_bif <- dataS %>%
             Composite = as.numeric(Compositeendpoint),
             Composite_FU = as.numeric(Compositeendpoint_DAYS),
             Composite_FU365 = pmin(Composite_FU, 365),
-            Composite_365 = case_when(Composite_FU365 < 365 & Composite == 1 ~ 1,
+            Composite_365 = case_when(Composite_FU < 365 & Composite == 1 ~ 1,
                                       TRUE ~ 0),
             Composite_FU30 = pmin(Composite_FU, 30),
             Composite_30 = case_when(Composite_FU30 < 30 & Composite == 1 ~ 1,
+                                      TRUE ~ 0),
+            Composite_wMort = case_when(Mortality == 1 ~ 1,
+                                  CV_Mortality == 1 ~ 1,
+                                  TLR == 1 ~ 1,
+                                  TLR_MI == 1 ~ 1,
+                                  TRUE ~ 0),
+            Composite_wMort_FU = case_when(Composite_wMort == T ~ pmin(Mortality_FU, CV_Mortality_FU, TLR_FU, TLR_MI_FU),
+                                     TRUE ~ TotalFU_DAYS),
+            Composite_wMort_FU365 = pmin(Composite_wMort_FU, 365),
+            Composite_wMort_365 = case_when(Composite_wMort_FU365 < 365 & Composite_wMort == 1 ~ 1,
+                                      TRUE ~ 0),
+            Composite_wMort_FU30 = pmin(Composite_wMort_FU, 30),
+            Composite_wMort_30 = case_when(Composite_wMort_FU30 < 30 & Composite_wMort == 1 ~ 1,
                                       TRUE ~ 0)
   )
 ```
@@ -239,21 +254,21 @@ gtsave(Baseline_T, "Table1/BaselineT.html")
 ```{r Univariate Tables}
 UV_T <- list()
 
-Outcomes <- c("Mortality", "CV_Mortality", "TLR", "TLR_MI", "Composite")
-Followups <- c("Mortality_FU", "CV_Mortality_FU", "TLR_FU", "TLR_MI_FU", "Composite_FU")
+Outcomes <- c("Mortality", "CV_Mortality", "TLR", "TLR_MI", "Composite", "Composite_wMort")
+Followups <- c("Mortality_FU", "CV_Mortality_FU", "TLR_FU", "TLR_MI_FU", "Composite", "Composite_wMort_FU")
 
 library(doFuture)
 registerDoFuture()
 plan(multisession)
 
-foreach(i=1:5, .packages = c("foreach", "tidyverse", "gtsummary")) %dopar% {
+foreach(i=1:6, .packages = c("foreach", "tidyverse", "gtsummary")) %dopar% {
   
 theme_gtsummary_journal(journal = "jama")
 #> Setting theme `JAMA`
 theme_gtsummary_compact()
 #> Setting theme `Compact`
 
-.GlobalEnv$UV_T[[i]] <- gtsummary::tbl_uvregression(data_bif,
+.GlobalEnv$UV_T[[i]] <-  gtsummary::tbl_uvregression(data_bif,
                  method = survival::coxph,
                  y = survival::Surv(time = !!sym(Followups[i]), event = !!sym(Outcomes[i])),
                  exponentiate = T,
@@ -288,6 +303,10 @@ fit5<- survfit(Surv(Composite_FU, Composite) ~ DCB_DES, data = data_bif)
 plot5 <- ggsurvplot(fit5, fun = "cumhaz", pval = TRUE, conf.int = TRUE,
            risk.table = T, risk.table.y.text.col = TRUE, ylim=c(0,0.3), xscale="d_y", legend.labs = c("DCB", "DES"), xlab = "Years Since Index Procedure", ylab = "Probability of Incurring Composite Endpoint", palette = c("#fba30c", "#0077b8"), theme = "lancet", break.time.by	= 365.25, pval.coord = c(0,0.1), legend.title = "")
 
+fit6 <- survfit(Surv(Composite_wMort_FU, Composite_wMort) ~ DCB_DES, data = data_bif)
+plot6 <- ggsurvplot(fit6, fun = "cumhaz", pval = TRUE, conf.int = TRUE,
+           risk.table = T, risk.table.y.text.col = TRUE, ylim=c(0,0.35), xscale="d_y", legend.labs = c("DCB", "DES"), xlab = "Years Since Index Procedure", ylab = "Probability of Incurring Composite Endpoint w/Mort", palette = c("#fba30c", "#0077b8"), theme = "lancet", break.time.by	= 365.25, pval.coord = c(0,0.1), legend.title = "")
+
 cairo_pdf(filename = "Cum_Haz_Plots_UnMatched/CumHazPlots.pdf",
          width = 6, height = 6, onefile = T)
 print(plot1, newpage = F)
@@ -295,37 +314,38 @@ print(plot2)
 print(plot3)
 print(plot4)
 print(plot5)
+print(plot6)
 dev.off()
+```
+
+```{r Searching for the variables to PS Match for}
+PS_Variable_Search <- data_bif %>%
+  drop_na(DCB_DES) %>%
+  select(-Study_ID, -HospitalNumber, -Imaging, -PMHx_Transplant)
+
+gtsummary::tbl_uvregression(PS_Variable_Search,
+                 method = glm,
+                 method.args = list(family = binomial),
+                 y = DCB_DES,
+                 exponentiate = T) %>%
+  modify_header(label = paste0("**",Outcomes[i],"**", " (Univariate)")) %>%
+  bold_p() %>%
+  as_gt()
+
+PS_Variables = c("DCB_DES", "Presentation", "BIF_Medina_Classification", "True_Bif", "Duration_Procedure", "ContrastinMLS", "Rad_Skin_Dose", "PMHx_MI", "PMHx_PCI", "PMHx_AF", "Vessel_Tx", "Heavy_Calc", "Diffuse_Dx", "Tortuosity", "denovo_VesselDiam", "denovo_LesionLgth")
 ```
 
 ```{r PS Matching (All)}
 data_ps_bif <- data_bif %>%
-  select(DCB_DES, Age, Sex, Presentation, BIF_Medina_Classification, True_Bif, Frailty_Sc, Duration_Procedure, PMHx_Hyperchol, PMHx_HTN, PMHx_PVD, PMHx_CVE, PMHx_MI, PMHx_CABG, PMHx_HF, PMHx_Angina, FHx_CAD, PMHx_Asthma, PMHx_COPD, PMHx_DM, Smok_Stat, Creatinine, Vessel_Tx, Heavy_Calc, Tortuosity, Mortality, CV_Mortality, TLR, TLR_MI, Composite, Mortality_FU, CV_Mortality_FU, TLR_FU, TLR_MI_FU, Composite_FU) %>%
-  drop_na(1:25)
+  select(DCB_DES, Age, Sex,Presentation, BIF_Medina_Classification, True_Bif, Duration_Procedure, ContrastinMLS, Rad_Skin_Dose, PMHx_MI, PMHx_PCI, PMHx_AF, Vessel_Tx, Heavy_Calc, Diffuse_Dx, Tortuosity, denovo_VesselDiam, denovo_LesionLgth, Mortality, CV_Mortality, TLR, TLR_MI, Composite, Composite_wMort, Mortality_FU, CV_Mortality_FU, TLR_FU, TLR_MI_FU, Composite_FU, Composite_wMort_FU) %>%
+  drop_na(1:18)
 
 set.seed(1234)
 
-match.it <- matchit(DCB_DES ~ Age+ Sex+ Presentation+ BIF_Medina_Classification+ True_Bif+ Frailty_Sc+ Duration_Procedure+ PMHx_Hyperchol+ PMHx_HTN+ PMHx_PVD+ PMHx_CVE+ PMHx_MI+ PMHx_CABG+ PMHx_HF+ PMHx_Angina+ FHx_CAD+ PMHx_Asthma+ PMHx_COPD+ PMHx_DM+ Smok_Stat+ Creatinine+ Vessel_Tx+ Heavy_Calc+ Tortuosity
-                    , data = data_ps_bif, method="optimal", ratio=1) #Full matching technique
+match.it <- matchit(DCB_DES ~ Age+ Sex+ Presentation+ BIF_Medina_Classification+ True_Bif+ Duration_Procedure+ ContrastinMLS+ Rad_Skin_Dose+ PMHx_MI+ PMHx_PCI+ PMHx_AF+ Vessel_Tx+ Heavy_Calc+ Diffuse_Dx+ Tortuosity+ denovo_VesselDiam+ denovo_LesionLgth, data = data_ps_bif, method="genetic", replace = T,  pop.size = 20) #Full matching technique
 a <- summary(match.it)
 
-#verify match 
-Match1 <- plot(match.it, type = 'jitter', interactive = F)
-
-Match2 <- plot(match.it, type = "density", interactive = FALSE,
-     which.xs = ~Age)
-
-#create new dataframe without unmatched
-df.match1 <- match.data(match.it)[1:ncol(data_ps_bif)]
-
-cairo_pdf(filename = "Matching_Files/Match_All.pdf",
-         width = 6, height = 6, onefile = T)
-print(plot(match.it, type = 'jitter', interactive = F), newpage = F)
-print(plot(match.it, type = "density", interactive = FALSE,
-     which.xs = ~Age))
-dev.off()
-
-write_csv(df.match1, "Data/PS_Match_All.csv")
+df.match1 <- get_matches(match.it)
 
 df.match_All <- df.match1
 ```
@@ -351,6 +371,10 @@ fit5<- survfit(Surv(Composite_FU, Composite) ~ DCB_DES, data = df.match_All)
 plot5 <- ggsurvplot(fit5, fun = "cumhaz", pval = TRUE, conf.int = TRUE,
            risk.table = T, risk.table.y.text.col = TRUE, ylim=c(0,0.3), xscale="d_y", legend.labs = c("DCB", "DES"), xlab = "Years Since Index Procedure", ylab = "Probability of Incurring Composite Endpoint", palette = c("#fba30c", "#0077b8"), theme = "lancet", break.time.by	= 365.25, pval.coord = c(0,0.1), legend.title = "")
 
+fit6 <- survfit(Surv(Composite_wMort_FU, Composite_wMort) ~ DCB_DES, data = df.match_All)
+plot6 <- ggsurvplot(fit6, fun = "cumhaz", pval = TRUE, conf.int = TRUE,
+           risk.table = T, risk.table.y.text.col = TRUE, ylim=c(0,0.35), xscale="d_y", legend.labs = c("DCB", "DES"), xlab = "Years Since Index Procedure", ylab = "Probability of Incurring Composite Endpoint w/Mort", palette = c("#fba30c", "#0077b8"), theme = "lancet", break.time.by	= 365.25, pval.coord = c(0,0.1), legend.title = "")
+
 cairo_pdf(filename = "Cum_Haz_Plots_Matched/CumHazPlots.pdf",
          width = 6, height = 6, onefile = T)
 print(plot1, newpage = F)
@@ -358,6 +382,7 @@ print(plot2)
 print(plot3)
 print(plot4)
 print(plot5)
+print(plot6)
 dev.off()
 ```
 
@@ -366,20 +391,20 @@ library(furrr)
 
 MV_T <- list()
 
-Outcomes <- c("Mortality", "CV_Mortality", "TLR", "TLR_MI", "Composite")
-Followups <- c("Mortality_FU", "CV_Mortality_FU", "TLR_FU", "TLR_MI_FU", "Composite_FU")
+Outcomes <- c("Mortality", "CV_Mortality", "TLR", "TLR_MI", "Composite", "Composite_wMort")
+Followups <- c("Mortality_FU", "CV_Mortality_FU", "TLR_FU", "TLR_MI_FU", "Composite_wMort_FU")
 
 doParallel::registerDoParallel()
 
 data_bif_mv <- data_bif %>%
-  select(DCB_DES, Age, Sex, Presentation, BIF_Medina_Classification, True_Bif, Frailty_Sc, Duration_Procedure, PMHx_Hyperchol, PMHx_HTN, PMHx_PVD, PMHx_CVE, PMHx_MI, PMHx_CABG, PMHx_HF, PMHx_Angina, FHx_CAD, PMHx_Asthma, PMHx_COPD, PMHx_DM, Smok_Stat, Creatinine, Vessel_Tx, Heavy_Calc, Tortuosity, Mortality, Mortality_FU, CV_Mortality, CV_Mortality_FU, TLR, TLR_FU, TLR_MI, TLR_MI_FU, Composite, Composite_FU) %>%
+  select(DCB_DES, Age, Sex, Presentation, BIF_Medina_Classification, True_Bif, Duration_Procedure, ContrastinMLS, Rad_Skin_Dose, PMHx_MI, PMHx_PCI, PMHx_AF, Vessel_Tx, Heavy_Calc, Diffuse_Dx, Tortuosity, denovo_VesselDiam, denovo_LesionLgth, Tortuosity, Mortality, Mortality_FU, CV_Mortality, CV_Mortality_FU, TLR, TLR_FU, TLR_MI, TLR_MI_FU, Composite, Composite_FU, Composite_wMort, Composite_wMort_FU) %>%
   drop_na()
   
-res.cox <- future_map(Outcomes, ~coxph(as.formula(paste0("Surv(time = ",.x ,"_FU", ", event = ", .x, ") ~ DCB_DES +  Age+ Sex+ Presentation+ BIF_Medina_Classification+ True_Bif+ Frailty_Sc+ Duration_Procedure+ PMHx_Hyperchol+ PMHx_HTN+ PMHx_PVD+ PMHx_CVE+ PMHx_MI+ PMHx_CABG+ PMHx_HF+ PMHx_Angina+ FHx_CAD+ PMHx_Asthma+ PMHx_COPD+ PMHx_DM+ Smok_Stat+ Creatinine+ Vessel_Tx+ Heavy_Calc+ Tortuosity")), data =  data_bif_mv)) 
+res.cox <- future_map(Outcomes, ~coxph(as.formula(paste0("Surv(time = ",.x ,"_FU", ", event = ", .x, ") ~ DCB_DES +  Age+ Sex+ Presentation+ BIF_Medina_Classification+ True_Bif+ Duration_Procedure+ ContrastinMLS+ Rad_Skin_Dose+ PMHx_MI+ PMHx_PCI+ PMHx_AF+ Vessel_Tx+ Heavy_Calc+ Diffuse_Dx+ Tortuosity+ denovo_VesselDiam+ denovo_LesionLgth")), data =  data_bif_mv)) 
 
-step_reg <- future_map(1:5, ~stats::step(res.cox[[.x]], direction='both', scope=list(lower = Surv(time = !!sym(Followups[.x]), event = !!sym(Outcomes[.x])) ~ DCB_DES, upper = stats::formula(res.cox[[.x]])), trace=0))
+step_reg <- map(1:6, ~stats::step(res.cox[[.x]], direction='both', scope=list(lower = Surv(time = !!sym(Followups[.x]), event = !!sym(Outcomes[.x])) ~ DCB_DES, upper = stats::formula(res.cox[[.x]])), trace=0))
 
-MV_T <- map(1:5, ~gtsummary::tbl_regression(step_reg[[.x]], 
+MV_T <- map(1:6, ~gtsummary::tbl_regression(step_reg[[.x]], 
                exponentiate = T, 
                #show_single_row = c(DCB_DES, PMHx_CVE, PMHx_HF, FHx_CAD),
                #label = list(DCB_DES ~ "DCB/DES [DES]",
@@ -394,6 +419,6 @@ MV_T <- map(1:5, ~gtsummary::tbl_regression(step_reg[[.x]],
   gtsummary::add_n() %>%
   gtsummary::as_gt())
 
-map(1:5, ~gt::gtsave(MV_T[[.x]], paste0("MV_Tables/" , Outcomes[.x], "_MV.html")))
+map(1:6, ~gt::gtsave(MV_T[[.x]], paste0("MV_Tables/" , Outcomes[.x], "_MV.html")))
 
 ```
