@@ -392,7 +392,7 @@ library(furrr)
 MV_T <- list()
 
 Outcomes <- c("Mortality", "CV_Mortality", "TLR", "TLR_MI", "Composite", "Composite_wMort")
-Followups <- c("Mortality_FU", "CV_Mortality_FU", "TLR_FU", "TLR_MI_FU", "Composite_wMort_FU")
+Followups <- c("Mortality_FU", "CV_Mortality_FU", "TLR_FU", "TLR_MI_FU", "Composite_FU", "Composite_wMort_FU")
 
 doParallel::registerDoParallel()
 
