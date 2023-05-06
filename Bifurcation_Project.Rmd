@@ -255,7 +255,7 @@ gtsave(Baseline_T, "Table1/BaselineT.html")
 UV_T <- list()
 
 Outcomes <- c("Mortality", "CV_Mortality", "TLR", "TLR_MI", "Composite", "Composite_wMort")
-Followups <- c("Mortality_FU", "CV_Mortality_FU", "TLR_FU", "TLR_MI_FU", "Composite", "Composite_wMort_FU")
+Followups <- c("Mortality_FU", "CV_Mortality_FU", "TLR_FU", "TLR_MI_FU", "Composite_FU", "Composite_wMort_FU")
 
 library(doFuture)
 registerDoFuture()
