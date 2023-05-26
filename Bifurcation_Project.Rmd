@@ -342,7 +342,7 @@ data_ps_bif <- data_bif %>%
 
 set.seed(1234)
 
-match.it <- matchit(DCB_DES ~ Age+ Sex+ Presentation+ BIF_Medina_Classification+ True_Bif+ Duration_Procedure+ ContrastinMLS+ Rad_Skin_Dose+ PMHx_MI+ PMHx_PCI+ PMHx_AF+ Vessel_Tx+ Heavy_Calc+ Diffuse_Dx+ Tortuosity+ denovo_VesselDiam+ denovo_LesionLgth, data = data_ps_bif, method="genetic", replace = T,  pop.size = 1000) #Full matching technique
+match.it <- matchit(DCB_DES ~ Age+ Sex+ Presentation+ BIF_Medina_Classification+ True_Bif+ Duration_Procedure+ ContrastinMLS+ Rad_Skin_Dose+ PMHx_MI+ PMHx_PCI+ PMHx_AF+ Vessel_Tx+ Heavy_Calc+ Diffuse_Dx+ Tortuosity+ denovo_VesselDiam+ denovo_LesionLgth, data = data_ps_bif, method="genetic", replace = T,  pop.size = 1000, cluster = parallel::makeCluster(nCores)) #Full matching technique
 a <- summary(match.it)
 
 df.match1 <- get_matches(match.it)
