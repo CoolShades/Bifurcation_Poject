@@ -336,13 +336,16 @@ PS_Variables = c("DCB_DES", "Presentation", "BIF_Medina_Classification", "True_B
 ```
 
 ```{r PS Matching (All)}
+
+nCores <- detectCores() - 1
+
 data_ps_bif <- data_bif %>%
-  select(DCB_DES, Age, Sex,Presentation, BIF_Medina_Classification, True_Bif, Duration_Procedure, ContrastinMLS, Rad_Skin_Dose, PMHx_MI, PMHx_PCI, PMHx_AF, Vessel_Tx, Heavy_Calc, Diffuse_Dx, Tortuosity, denovo_VesselDiam, denovo_LesionLgth, Mortality, CV_Mortality, TLR, TLR_MI, Composite, Composite_wMort, Mortality_FU, CV_Mortality_FU, TLR_FU, TLR_MI_FU, Composite_FU, Composite_wMort_FU) %>%
-  drop_na(1:18)
+  select(DCB_DES, Age, Sex, Presentation, True_Bif, PMHx_MI, PMHx_PCI, PMHx_AF, Vessel_Tx, Heavy_Calc, Diffuse_Dx, Tortuosity, denovo_VesselDiam, denovo_LesionLgth, PMHx_DM, Creatinine,  Mortality, CV_Mortality, TLR, TLR_MI, Composite, Composite_wMort, Mortality_FU, CV_Mortality_FU, TLR_FU, TLR_MI_FU, Composite_FU, Composite_wMort_FU) %>%
+  drop_na(1:16)
 
 set.seed(1234)
 
-match.it <- matchit(DCB_DES ~ Age+ Sex+ Presentation+ BIF_Medina_Classification+ True_Bif+ Duration_Procedure+ ContrastinMLS+ Rad_Skin_Dose+ PMHx_MI+ PMHx_PCI+ PMHx_AF+ Vessel_Tx+ Heavy_Calc+ Diffuse_Dx+ Tortuosity+ denovo_VesselDiam+ denovo_LesionLgth, data = data_ps_bif, method="genetic", replace = T,  pop.size = 1000) #Full matching technique
+match.it <- matchit(DCB_DES ~ Age+ Sex+ Presentation+ True_Bif+ PMHx_MI+ PMHx_PCI+ PMHx_AF+ Vessel_Tx+ Heavy_Calc+ Diffuse_Dx+ Tortuosity+ denovo_VesselDiam+ denovo_LesionLgth + PMHx_DM + Creatinine, data = data_ps_bif, method="genetic", replace = T,  pop.size = 1000, cluster = parallel::makeCluster(nCores)) #Full matching technique
 a <- summary(match.it)
 
 df.match1 <- get_matches(match.it)
@@ -369,11 +372,11 @@ plot4 <- ggsurvplot(fit4, fun = "cumhaz", pval = TRUE, conf.int = TRUE,
 
 fit5<- survfit(Surv(Composite_FU, Composite) ~ DCB_DES, data = df.match_All)
 plot5 <- ggsurvplot(fit5, fun = "cumhaz", pval = TRUE, conf.int = TRUE,
-           risk.table = T, risk.table.y.text.col = TRUE, ylim=c(0,0.3), xscale="d_y", legend.labs = c("DCB", "DES"), xlab = "Years Since Index Procedure", ylab = "Probability of Incurring Composite Endpoint", palette = c("#fba30c", "#0077b8"), theme = "lancet", break.time.by	= 365.25, pval.coord = c(0,0.1), legend.title = "")
+           risk.table = T, risk.table.y.text.col = TRUE, ylim=c(0,0.3), xscale="d_y", legend.labs = c("DCB", "DES"), xlab = "Years Since Index Procedure", ylab = "Probability of Incurring Composite Endpoint", palette = c("#fba30c", "#0077b8"), theme = "lancet", break.time.by	= 365.25, pval.coord = c(0,0.15), legend.title = "")
 
 fit6 <- survfit(Surv(Composite_wMort_FU, Composite_wMort) ~ DCB_DES, data = df.match_All)
 plot6 <- ggsurvplot(fit6, fun = "cumhaz", pval = TRUE, conf.int = TRUE,
-           risk.table = T, risk.table.y.text.col = TRUE, ylim=c(0,0.35), xscale="d_y", legend.labs = c("DCB", "DES"), xlab = "Years Since Index Procedure", ylab = "Probability of Incurring Composite Endpoint w/Mort", palette = c("#fba30c", "#0077b8"), theme = "lancet", break.time.by	= 365.25, pval.coord = c(0,0.1), legend.title = "")
+           risk.table = T, risk.table.y.text.col = TRUE, ylim=c(0,0.35), xscale="d_y", legend.labs = c("DCB", "DES"), xlab = "Years Since Index Procedure", ylab = "Probability of Incurring Composite Endpoint w/Mort", palette = c("#fba30c", "#0077b8"), theme = "lancet", break.time.by	= 365.25, pval.coord = c(0,0.15), legend.title = "")
 
 cairo_pdf(filename = "Cum_Haz_Plots_Matched/CumHazPlots.pdf",
          width = 6, height = 6, onefile = T)
