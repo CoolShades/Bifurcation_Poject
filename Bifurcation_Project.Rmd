@@ -336,6 +336,8 @@ PS_Variables = c("DCB_DES", "Presentation", "BIF_Medina_Classification", "True_B
 ```
 
 ```{r PS Matching (All)}
+nCores <- detectCores() - 1
+
 data_ps_bif <- data_bif %>%
   select(DCB_DES, Age, Sex,Presentation, BIF_Medina_Classification, True_Bif, Duration_Procedure, ContrastinMLS, Rad_Skin_Dose, PMHx_MI, PMHx_PCI, PMHx_AF, Vessel_Tx, Heavy_Calc, Diffuse_Dx, Tortuosity, denovo_VesselDiam, denovo_LesionLgth, Mortality, CV_Mortality, TLR, TLR_MI, Composite, Composite_wMort, Mortality_FU, CV_Mortality_FU, TLR_FU, TLR_MI_FU, Composite_FU, Composite_wMort_FU) %>%
   drop_na(1:18)
