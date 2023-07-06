@@ -346,11 +346,63 @@ data_ps_bif <- data_bif %>%
 set.seed(1234)
 
 match.it <- matchit(DCB_DES ~ Age+ Sex+ Presentation+ True_Bif+ PMHx_MI+ PMHx_PCI+ PMHx_AF+ Vessel_Tx+ Heavy_Calc+ Diffuse_Dx+ Tortuosity+ denovo_VesselDiam+ denovo_LesionLgth + PMHx_DM + Creatinine, data = data_ps_bif, method="genetic", replace = T,  pop.size = 1000, cluster = parallel::makeCluster(nCores)) #Full matching technique
+
 a <- summary(match.it)
 
 df.match1 <- get_matches(match.it)
+df.matchid <- get_matches(match.it) %>% select(id) %>% mutate(id = as.numeric(id))
 
 df.match_All <- df.match1
+
+df.match_Full <- inner_join(data_bif, df.match1, by = names(df.match1)[4:30])
+```
+
+```{r Table1 for Matched Set}
+
+data_Table <- df.match_Full %>%
+  select(-id)
+
+Baseline_T <- tbl_summary(data_Table,
+            by = DCB_DES) %>%
+  add_p() %>%
+  bold_p() %>%
+  add_overall() %>%
+  gtsummary::separate_p_footnotes() %>%
+  as_gt() 
+
+gtsave(Baseline_T, "Table1/PS_BaselineT.html")
+```
+
+```{r Cox for Matched Set}
+
+UV_T <- list()
+
+Outcomes <- c("Mortality", "CV_Mortality", "TLR", "TLR_MI", "Composite", "Composite_wMort")
+Followups <- c("Mortality_FU", "CV_Mortality_FU", "TLR_FU", "TLR_MI_FU", "Composite_FU", "Composite_wMort_FU.x")
+
+library(doFuture)
+registerDoFuture()
+plan(multisession)
+
+foreach(i=1:6, .packages = c("foreach", "tidyverse", "gtsummary")) %dopar% {
+  
+theme_gtsummary_journal(journal = "jama")
+#> Setting theme `JAMA`
+theme_gtsummary_compact()
+#> Setting theme `Compact`
+
+.GlobalEnv$UV_T[[i]] <-  gtsummary::tbl_uvregression(df.match_Full,
+                 method = survival::coxph,
+                 y = survival::Surv(time = !!sym(Followups[i]), event = !!sym(Outcomes[i])),
+                 exponentiate = T,
+                 include = c(DCB_DES, Age, Sex, Presentation, Multivessel_PCI, BIF_Medina_Classification, True_Bif, Treatment_Strat, Frailty_Sc, Frailty_Grp, Duration_Procedure, Pressure_Wire, Imaging, ContrastinMLS, Fluro_Time_mins, Rad_Dose_Area_Product, Rad_Skin_Dose, PMHx_Hyperchol, PMHx_HTN, PMHx_PVD, PMHx_CVE, PMHx_MI, PMHx_PCI, PMHx_CABG, PMHx_HF, PMHx_Angina, FHx_CAD, PMHx_Asthma, PMHx_COPD, PMHx_DM, Smok_Stat, Creatinine, Vessel_Tx, Heavy_Calc, Diffuse_Dx, Tortuosity, denovo_VesselDiam, denovo_LesionLgth, Vessel_GT3mm, SB_VesselDiam, SB_LesionLgth)) %>%
+  gtsummary::modify_header(label = paste0("**",Outcomes[i],"**", " (Univariate)")) %>%
+  gtsummary::bold_p() %>%
+  gtsummary::as_gt()
+
+gt::gtsave(.GlobalEnv$UV_T[[i]], paste0("UV_Tables/Matched/" , Outcomes[i], "_UV.html"))
+
+}
 ```
 
 ```{r CumHaz Charts_PS_Match}
@@ -425,3 +477,4 @@ MV_T <- map(1:6, ~gtsummary::tbl_regression(step_reg[[.x]],
 map(1:6, ~gt::gtsave(MV_T[[.x]], paste0("MV_Tables/" , Outcomes[.x], "_MV.html")))
 
 ```
+
