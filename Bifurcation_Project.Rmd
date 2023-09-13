@@ -10,7 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r Ensure Folders Exist, eval=FALSE, include=FALSE}
-Folders_Req <- c("Data", "Normality_Testing", "Table1", "UV_Tables", "MV_Tables", "Cum_Haz_Plots_UnMatched", "Matching_Files", "Cum_Haz_Plots_Matched")
+Folders_Req <- c("Data", "Normality_Testing", "Table1", "UV_Tables", "MV_Tables", "Cum_Haz_Plots_UnMatched", "Matching_Files", "Cum_Haz_Plots_Matched", "Landmark")
 
 for (i in 1:length(Folders_Req)) {
 
@@ -297,7 +297,7 @@ plot3 <- ggsurvplot(fit3, fun = "cumhaz", pval = TRUE, conf.int = TRUE,
 
 fit4<- survfit(Surv(TLR_MI_FU, TLR_MI) ~ DCB_DES, data = data_bif)
 plot4 <- ggsurvplot(fit4, fun = "cumhaz", pval = TRUE, conf.int = TRUE,
-           risk.table = T, risk.table.y.text.col = TRUE, ylim=c(0,0.3), xscale="d_y", legend.labs = c("DCB", "DES"), xlab = "Years Since Index Procedure", ylab = "Probability of Incurring TLR_MI", palette = c("#fba30c", "#0077b8"), theme = "lancet", break.time.by	= 365.25, pval.coord = c(0,0.1), legend.title = "")  
+           risk.table = T, risk.table.y.text.col = TRUE, ylim=c(0,0.3), xscale="d_y", legend.labs = c("DCB", "DES"), xlab = "Years Since Index Procedure", ylab = "Probability of Incurring Target Lesion MI", palette = c("#fba30c", "#0077b8"), theme = "lancet", break.time.by	= 365.25, pval.coord = c(0,0.1), legend.title = "")  
 
 fit5<- survfit(Surv(Composite_FU, Composite) ~ DCB_DES, data = data_bif)
 plot5 <- ggsurvplot(fit5, fun = "cumhaz", pval = TRUE, conf.int = TRUE,
@@ -419,7 +419,7 @@ plot3 <- ggsurvplot(fit3, fun = "cumhaz", pval = TRUE, conf.int = TRUE,
 
 fit4<- survfit(Surv(TLR_MI_FU, TLR_MI) ~ DCB_DES, data = df.match_All)
 plot4 <- ggsurvplot(fit4, fun = "cumhaz", pval = TRUE, conf.int = TRUE,
-           risk.table = T, risk.table.y.text.col = TRUE, ylim=c(0,0.3), xscale="d_y", legend.labs = c("DCB", "DES"), xlab = "Years Since Index Procedure", ylab = "Probability of Incurring TLR_MI", palette = c("#fba30c", "#0077b8"), theme = "lancet", break.time.by	= 365.25, pval.coord = c(0,0.1), legend.title = "")  
+           risk.table = T, risk.table.y.text.col = TRUE, ylim=c(0,0.3), xscale="d_y", legend.labs = c("DCB", "DES"), xlab = "Years Since Index Procedure", ylab = "Probability of Incurring Target Lesion MI", palette = c("#fba30c", "#0077b8"), theme = "lancet", break.time.by	= 365.25, pval.coord = c(0,0.1), legend.title = "")  
 
 fit5<- survfit(Surv(Composite_FU, Composite) ~ DCB_DES, data = df.match_All)
 plot5 <- ggsurvplot(fit5, fun = "cumhaz", pval = TRUE, conf.int = TRUE,
@@ -440,6 +440,202 @@ print(plot6)
 dev.off()
 ```
 
+```{r Landmark Analysis}
+df.match_Mort2 <- df.match_All %>%
+  filter(Mortality_FU >= 365) %>%
+  mutate(Mortality_FU = Mortality_FU - 365)
+  
+df.match_CVMort2 <- df.match_All %>%
+  filter(CV_Mortality_FU >= 365) %>%
+  mutate(CV_Mortality_FU = CV_Mortality_FU - 365)
+
+df.match_TLR2 <- df.match_All %>%
+  filter(TLR_FU >= 365) %>%
+  mutate(TLR_FU = TLR_FU - 365)
+
+df.match_TLR_MI2 <- df.match_All %>%
+  filter(TLR_MI_FU >= 365) %>%
+  mutate(TLR_MI_FU = TLR_MI_FU - 365)
+
+df.match_Comp2 <- df.match_All %>%
+  filter(Composite_FU >= 365) %>%
+  mutate(Composite_FU = Composite_FU - 365)
+
+df.match_CompwMort2 <- df.match_All %>%
+  filter(Composite_wMort_FU >= 365) %>%
+  mutate(Composite_wMort_FU = Composite_wMort_FU - 365)
+
+#This part uses all the *1 dfs.
+
+fit1<- survfit(Surv(Mortality_FU, Mortality) ~ DCB_DES, data = df.match_Mort2)
+plot1 <- ggsurvplot(fit1, fun = "cumhaz", pval = TRUE, conf.int = TRUE,
+           risk.table = T, risk.table.y.text.col = TRUE, ylim=c(0,0.3), xscale="d_y", legend.labs = c("DCB", "DES"), xlab = "Years Since 1-Year Landmark", ylab = "Probability of All-Cause Mortality", palette = c("#fba30c", "#0077b8"), theme = "lancet", break.time.by	= 365.25, pval.coord = c(0,0.1), legend.title = "") 
+
+fit2<- survfit(Surv(CV_Mortality_FU, CV_Mortality) ~ DCB_DES, data = df.match_CVMort2)
+plot2 <- ggsurvplot(fit2, fun = "event", pval = TRUE, conf.int = TRUE,
+           risk.table = T, risk.table.y.text.col = TRUE, ylim=c(0,0.3), xscale="d_y", legend.labs = c("DCB", "DES"), xlab = "Years Since 1-Year Landmark", ylab = "Probability of Cardiovascular Mortality", palette = c("#fba30c", "#0077b8"), theme = "lancet", break.time.by	= 365.25, pval.coord = c(0,0.1), legend.title = "")  
+
+fit3<- survfit(Surv(TLR_FU, TLR) ~ DCB_DES, data = df.match_TLR2)
+plot3 <- ggsurvplot(fit3, fun = "event", pval = TRUE, conf.int = TRUE,
+           risk.table = T, risk.table.y.text.col = TRUE, ylim=c(0,0.3), xscale="d_y", legend.labs = c("DCB", "DES"), xlab = "Years Since 1-Year Landmark", ylab = "Probability of Incurring TLR", palette = c("#fba30c", "#0077b8"), theme = "lancet", break.time.by	= 365.25, pval.coord = c(0,0.1), legend.title = "")  
+
+fit4<- survfit(Surv(TLR_MI_FU, TLR_MI) ~ DCB_DES, data = df.match_TLR_MI2)
+plot4 <- ggsurvplot(fit4, fun = "event", pval = TRUE, conf.int = TRUE,
+           risk.table = T, risk.table.y.text.col = TRUE, ylim=c(0,0.3), xscale="d_y", legend.labs = c("DCB", "DES"), xlab = "Years Since 1-Year Landmark", ylab = "Probability of Incurring Target Lesion MI", palette = c("#fba30c", "#0077b8"), theme = "lancet", break.time.by	= 365.25, pval.coord = c(0,0.1), legend.title = "")  
+
+fit5<- survfit(Surv(Composite_FU, Composite) ~ DCB_DES, data = df.match_Comp2)
+plot5 <- ggsurvplot(fit5, fun = "event", pval = TRUE, conf.int = TRUE,
+           risk.table = T, risk.table.y.text.col = TRUE, ylim=c(0,0.3), xscale="d_y", legend.labs = c("DCB", "DES"), xlab = "Years Since 1-Year Landmark", ylab = "Probability of Incurring Composite Endpoint", palette = c("#fba30c", "#0077b8"), theme = "lancet", break.time.by	= 365.25, pval.coord = c(0,0.15), legend.title = "")
+
+fit6 <- survfit(Surv(Composite_wMort_FU, Composite_wMort) ~ DCB_DES, data = df.match_CompwMort2)
+plot6 <- ggsurvplot(fit6, fun = "event", pval = TRUE, conf.int = TRUE,
+           risk.table = T, risk.table.y.text.col = TRUE, ylim=c(0,0.35), xscale="d_y", legend.labs = c("DCB", "DES"), xlab = "Years Since 1-Year Landmark", ylab = "Probability of Incurring Composite Endpoint w/Mort", palette = c("#fba30c", "#0077b8"), theme = "lancet", break.time.by	= 365.25, pval.coord = c(0,0.15), legend.title = "")
+
+cairo_pdf(filename = "Landmark/CumHazPlots.pdf",
+         width = 6, height = 6, onefile = T)
+print(plot1, newpage = F)
+print(plot2)
+print(plot3)
+print(plot4)
+print(plot5)
+print(plot6)
+dev.off()
+
+df.Match_360 <- df.match_All %>%
+  mutate(   Mortality_FU365 = pmin(Mortality_FU, 365),
+            Mortality_365 = case_when(Mortality_FU365 < 365 & Mortality == 1 ~ 1,
+                                      TRUE ~ 0),
+            CV_Mortality_FU365 = pmin(CV_Mortality_FU, 365),
+            CV_Mortality_365 = case_when(CV_Mortality_FU365 < 365 & CV_Mortality == 1 ~ 1,
+                                      TRUE ~ 0),
+            TLR_FU365 = pmin(TLR_FU, 365),
+            TLR_365 = case_when(TLR_FU365 < 365 & TLR == 1 ~ 1,
+                                      TRUE ~ 0),
+            TLR_MI_FU365 = pmin(TLR_MI_FU, 365),
+            TLR_MI_365 = case_when(TLR_MI_FU365 < 365 & TLR_MI == 1 ~ 1,
+                                      TRUE ~ 0),
+            Composite_FU365 = pmin(Composite_FU, 365),
+            Composite_365 = case_when(Composite_FU < 365 & Composite == 1 ~ 1,
+                                      TRUE ~ 0),
+            Composite_wMort_FU365 = pmin(Composite_wMort_FU, 365),
+            Composite_wMort_365 = case_when(Composite_wMort_FU365 < 365 & Composite_wMort == 1 ~ 1,
+                                      TRUE ~ 0)
+  )
+
+fit1<- survfit(Surv(Mortality_FU365, Mortality_365) ~ DCB_DES, data = df.Match_360)
+plot1 <- ggsurvplot(fit1, fun = "cumhaz", pval = TRUE, conf.int = TRUE,
+           risk.table = T, risk.table.y.text.col = TRUE, ylim=c(0,0.3), xlim=c(0,365), xscale="d_m", legend.labs = c("DCB", "DES"), xlab = "Months Until 1-Year Landmark", ylab = "Probability of All-Cause Mortality", palette = c("#fba30c", "#0077b8"), theme = "lancet", break.time.by	= 30.4375, pval.coord = c(0,0.1), legend.title = "") 
+
+fit2<- survfit(Surv(CV_Mortality_FU365, CV_Mortality_365) ~ DCB_DES, data = df.Match_360)
+plot2 <- ggsurvplot(fit2, fun = "event", pval = TRUE, conf.int = TRUE,
+           risk.table = T, risk.table.y.text.col = TRUE, ylim=c(0,0.3), xlim=c(0,365), xscale="d_m", legend.labs = c("DCB", "DES"), xlab = "Months Until 1-Year Landmark", ylab = "Probability of Cardiovascular Mortality", palette = c("#fba30c", "#0077b8"), theme = "lancet", break.time.by	= 30.4375, pval.coord = c(0,0.1), legend.title = "")  
+
+fit3<- survfit(Surv(TLR_FU365, TLR_365) ~ DCB_DES, data = df.Match_360)
+plot3 <- ggsurvplot(fit3, fun = "event", pval = TRUE, conf.int = TRUE,
+           risk.table = T, risk.table.y.text.col = TRUE, ylim=c(0,0.3), xlim=c(0,365), xscale="d_m", legend.labs = c("DCB", "DES"), xlab = "Months Until 1-Year Landmark", ylab = "Probability of Incurring TLR", palette = c("#fba30c", "#0077b8"), theme = "lancet", break.time.by	= 30.4375, pval.coord = c(0,0.1), legend.title = "")  
+
+fit4<- survfit(Surv(TLR_MI_FU365, TLR_MI_365) ~ DCB_DES, data = df.Match_360)
+plot4 <- ggsurvplot(fit4, fun = "event", pval = TRUE, conf.int = TRUE,
+           risk.table = T, risk.table.y.text.col = TRUE, ylim=c(0,0.3), xlim=c(0,365), xscale="d_m", legend.labs = c("DCB", "DES"), xlab = "Months Until 1-Year Landmark", ylab = "Probability of Incurring Target Lesion MI", palette = c("#fba30c", "#0077b8"), theme = "lancet", break.time.by	= 30.4375, pval.coord = c(0,0.1), legend.title = "")  
+
+fit5<- survfit(Surv(Composite_FU365, Composite_365) ~ DCB_DES, data = df.Match_360)
+plot5 <- ggsurvplot(fit5, fun = "event", pval = TRUE, conf.int = TRUE,
+           risk.table = T, risk.table.y.text.col = TRUE, ylim=c(0,0.3), xlim=c(0,365), xscale="d_m", legend.labs = c("DCB", "DES"), xlab = "Months Until 1-Year Landmark", ylab = "Probability of Incurring Composite Endpoint", palette = c("#fba30c", "#0077b8"), theme = "lancet", break.time.by	= 30.4375, pval.coord = c(0,0.15), legend.title = "")
+
+fit6 <- survfit(Surv(Composite_wMort_FU365, Composite_wMort_365) ~ DCB_DES, data = df.Match_360)
+plot6 <- ggsurvplot(fit6, fun = "event", pval = TRUE, conf.int = TRUE,
+           risk.table = T, risk.table.y.text.col = TRUE, ylim=c(0,0.35), xlim=c(0,365), xscale="d_m", legend.labs = c("DCB", "DES"), xlab = "Months Until 1-Year Landmark", ylab = "Probability of Incurring Composite Endpoint w/Mort", palette = c("#fba30c", "#0077b8"), theme = "lancet", break.time.by	= 30.4375, pval.coord = c(0,0.15), legend.title = "")
+
+cairo_pdf(filename = "Landmark/CumHazPlots_LT365.pdf",
+         width = 6, height = 6, onefile = T)
+print(plot1, newpage = F)
+print(plot2)
+print(plot3)
+print(plot4)
+print(plot5)
+print(plot6)
+dev.off()
+```
+
+```{r Sensitivity Analysis}
+
+df.match_TBif <- df.match_All %>%
+  filter(True_Bif == "Yes")
+
+fit1<- survfit(Surv(Mortality_FU, Mortality) ~ DCB_DES, data = df.match_TBif)
+plot1 <- ggsurvplot(fit1, fun = "cumhaz", pval = TRUE, conf.int = TRUE,
+           risk.table = T, risk.table.y.text.col = TRUE, ylim=c(0,0.3), xscale="d_y", legend.labs = c("DCB", "DES"), xlab = "Years Since Index Procedure", ylab = "Probability of All-Cause Mortality", palette = c("#fba30c", "#0077b8"), theme = "lancet", break.time.by	= 365.25, pval.coord = c(0,0.1), legend.title = "") 
+
+fit2<- survfit(Surv(CV_Mortality_FU, CV_Mortality) ~ DCB_DES, data = df.match_TBif)
+plot2 <- ggsurvplot(fit2, fun = "cumhaz", pval = TRUE, conf.int = TRUE,
+           risk.table = T, risk.table.y.text.col = TRUE, ylim=c(0,0.3), xscale="d_y", legend.labs = c("DCB", "DES"), xlab = "Years Since Index Procedure", ylab = "Probability of Cardiovascular Mortality", palette = c("#fba30c", "#0077b8"), theme = "lancet", break.time.by	= 365.25, pval.coord = c(0,0.1), legend.title = "")  
+
+fit3<- survfit(Surv(TLR_FU, TLR) ~ DCB_DES, data = df.match_TBif)
+plot3 <- ggsurvplot(fit3, fun = "cumhaz", pval = TRUE, conf.int = TRUE,
+           risk.table = T, risk.table.y.text.col = TRUE, ylim=c(0,0.3), xscale="d_y", legend.labs = c("DCB", "DES"), xlab = "Years Since Index Procedure", ylab = "Probability of Incurring TLR", palette = c("#fba30c", "#0077b8"), theme = "lancet", break.time.by	= 365.25, pval.coord = c(0,0.1), legend.title = "")  
+
+fit4<- survfit(Surv(TLR_MI_FU, TLR_MI) ~ DCB_DES, data = df.match_TBif)
+plot4 <- ggsurvplot(fit4, fun = "cumhaz", pval = TRUE, conf.int = TRUE,
+           risk.table = T, risk.table.y.text.col = TRUE, ylim=c(0,0.3), xscale="d_y", legend.labs = c("DCB", "DES"), xlab = "Years Since Index Procedure", ylab = "Probability of Incurring Target Lesion MI", palette = c("#fba30c", "#0077b8"), theme = "lancet", break.time.by	= 365.25, pval.coord = c(0,0.1), legend.title = "")  
+
+fit5<- survfit(Surv(Composite_FU, Composite) ~ DCB_DES, data = df.match_TBif)
+plot5 <- ggsurvplot(fit5, fun = "cumhaz", pval = TRUE, conf.int = TRUE,
+           risk.table = T, risk.table.y.text.col = TRUE, ylim=c(0,0.5), xscale="d_y", legend.labs = c("DCB", "DES"), xlab = "Years Since Index Procedure", ylab = "Probability of Incurring Composite Endpoint", palette = c("#fba30c", "#0077b8"), theme = "lancet", break.time.by	= 365.25, pval.coord = c(0,0.25), legend.title = "")
+
+fit6 <- survfit(Surv(Composite_wMort_FU, Composite_wMort) ~ DCB_DES, data = df.match_TBif)
+plot6 <- ggsurvplot(fit6, fun = "cumhaz", pval = TRUE, conf.int = TRUE,
+           risk.table = T, risk.table.y.text.col = TRUE, ylim=c(0,0.5), xscale="d_y", legend.labs = c("DCB", "DES"), xlab = "Years Since Index Procedure", ylab = "Probability of Incurring Composite Endpoint w/Mort", palette = c("#fba30c", "#0077b8"), theme = "lancet", break.time.by	= 365.25, pval.coord = c(0,0.15), legend.title = "")
+
+cairo_pdf(filename = "SensitivityTBif/CumHazPlots_TrueBif.pdf",
+         width = 6, height = 6, onefile = T)
+print(plot1, newpage = F)
+print(plot2)
+print(plot3)
+print(plot4)
+print(plot5)
+print(plot6)
+dev.off()
+
+df.match_TBif <- df.match_All %>%
+  filter(True_Bif == "No")
+
+fit1<- survfit(Surv(Mortality_FU, Mortality) ~ DCB_DES, data = df.match_TBif)
+plot1 <- ggsurvplot(fit1, fun = "cumhaz", pval = TRUE, conf.int = TRUE,
+           risk.table = T, risk.table.y.text.col = TRUE, ylim=c(0,0.3), xscale="d_y", legend.labs = c("DCB", "DES"), xlab = "Years Since Index Procedure", ylab = "Probability of All-Cause Mortality", palette = c("#fba30c", "#0077b8"), theme = "lancet", break.time.by	= 365.25, pval.coord = c(0,0.1), legend.title = "") 
+
+fit2<- survfit(Surv(CV_Mortality_FU, CV_Mortality) ~ DCB_DES, data = df.match_TBif)
+plot2 <- ggsurvplot(fit2, fun = "cumhaz", pval = TRUE, conf.int = TRUE,
+           risk.table = T, risk.table.y.text.col = TRUE, ylim=c(0,0.3), xscale="d_y", legend.labs = c("DCB", "DES"), xlab = "Years Since Index Procedure", ylab = "Probability of Cardiovascular Mortality", palette = c("#fba30c", "#0077b8"), theme = "lancet", break.time.by	= 365.25, pval.coord = c(0,0.1), legend.title = "")  
+
+fit3<- survfit(Surv(TLR_FU, TLR) ~ DCB_DES, data = df.match_TBif)
+plot3 <- ggsurvplot(fit3, fun = "cumhaz", pval = TRUE, conf.int = TRUE,
+           risk.table = T, risk.table.y.text.col = TRUE, ylim=c(0,0.3), xscale="d_y", legend.labs = c("DCB", "DES"), xlab = "Years Since Index Procedure", ylab = "Probability of Incurring TLR", palette = c("#fba30c", "#0077b8"), theme = "lancet", break.time.by	= 365.25, pval.coord = c(0,0.1), legend.title = "")  
+
+fit4<- survfit(Surv(TLR_MI_FU, TLR_MI) ~ DCB_DES, data = df.match_TBif)
+plot4 <- ggsurvplot(fit4, fun = "cumhaz", pval = TRUE, conf.int = TRUE,
+           risk.table = T, risk.table.y.text.col = TRUE, ylim=c(0,0.3), xscale="d_y", legend.labs = c("DCB", "DES"), xlab = "Years Since Index Procedure", ylab = "Probability of Incurring Target Lesion MI", palette = c("#fba30c", "#0077b8"), theme = "lancet", break.time.by	= 365.25, pval.coord = c(0,0.1), legend.title = "")  
+
+fit5<- survfit(Surv(Composite_FU, Composite) ~ DCB_DES, data = df.match_TBif)
+plot5 <- ggsurvplot(fit5, fun = "cumhaz", pval = TRUE, conf.int = TRUE,
+           risk.table = T, risk.table.y.text.col = TRUE, ylim=c(0,0.5), xscale="d_y", legend.labs = c("DCB", "DES"), xlab = "Years Since Index Procedure", ylab = "Probability of Incurring Composite Endpoint", palette = c("#fba30c", "#0077b8"), theme = "lancet", break.time.by	= 365.25, pval.coord = c(0,0.25), legend.title = "")
+
+fit6 <- survfit(Surv(Composite_wMort_FU, Composite_wMort) ~ DCB_DES, data = df.match_TBif)
+plot6 <- ggsurvplot(fit6, fun = "cumhaz", pval = TRUE, conf.int = TRUE,
+           risk.table = T, risk.table.y.text.col = TRUE, ylim=c(0,0.5), xscale="d_y", legend.labs = c("DCB", "DES"), xlab = "Years Since Index Procedure", ylab = "Probability of Incurring Composite Endpoint w/Mort", palette = c("#fba30c", "#0077b8"), theme = "lancet", break.time.by	= 365.25, pval.coord = c(0,0.15), legend.title = "")
+
+cairo_pdf(filename = "SensitivityTBif/CumHazPlots_NOTTrueBif.pdf",
+         width = 6, height = 6, onefile = T)
+print(plot1, newpage = F)
+print(plot2)
+print(plot3)
+print(plot4)
+print(plot5)
+print(plot6)
+dev.off()
+
+```
+
+
 ```{r Multivariate for All Outcomes}
 library(furrr)
 
@@ -450,11 +646,11 @@ Followups <- c("Mortality_FU", "CV_Mortality_FU", "TLR_FU", "TLR_MI_FU", "Compos
 
 doParallel::registerDoParallel()
 
-data_bif_mv <- data_bif %>%
-  select(DCB_DES, Age, Sex, Presentation, BIF_Medina_Classification, True_Bif, Duration_Procedure, ContrastinMLS, Rad_Skin_Dose, PMHx_MI, PMHx_PCI, PMHx_AF, Vessel_Tx, Heavy_Calc, Diffuse_Dx, Tortuosity, denovo_VesselDiam, denovo_LesionLgth, Tortuosity, Mortality, Mortality_FU, CV_Mortality, CV_Mortality_FU, TLR, TLR_FU, TLR_MI, TLR_MI_FU, Composite, Composite_FU, Composite_wMort, Composite_wMort_FU) %>%
+data_bif_mv <- df.match_All %>%
+  select(DCB_DES, Age, Sex, Presentation, True_Bif, PMHx_MI, PMHx_PCI, PMHx_AF, Vessel_Tx, Heavy_Calc, Diffuse_Dx, Tortuosity, denovo_VesselDiam, denovo_LesionLgth, Tortuosity, Mortality, Mortality_FU, CV_Mortality, CV_Mortality_FU, TLR, TLR_FU, TLR_MI, TLR_MI_FU, Composite, Composite_FU, Composite_wMort, Composite_wMort_FU) %>%
   drop_na()
   
-res.cox <- future_map(Outcomes, ~coxph(as.formula(paste0("Surv(time = ",.x ,"_FU", ", event = ", .x, ") ~ DCB_DES +  Age+ Sex+ Presentation+ BIF_Medina_Classification+ True_Bif+ Duration_Procedure+ ContrastinMLS+ Rad_Skin_Dose+ PMHx_MI+ PMHx_PCI+ PMHx_AF+ Vessel_Tx+ Heavy_Calc+ Diffuse_Dx+ Tortuosity+ denovo_VesselDiam+ denovo_LesionLgth")), data =  data_bif_mv)) 
+res.cox <- future_map(Outcomes, ~coxph(as.formula(paste0("Surv(time = ",.x ,"_FU", ", event = ", .x, ") ~ DCB_DES +  Age+ Sex+ Presentation+ True_Bif+ PMHx_MI+ PMHx_PCI+ PMHx_AF+ Vessel_Tx+ Heavy_Calc+ Diffuse_Dx+ Tortuosity+ denovo_VesselDiam+ denovo_LesionLgth")), data =  data_bif_mv)) 
 
 step_reg <- map(1:6, ~stats::step(res.cox[[.x]], direction='both', scope=list(lower = Surv(time = !!sym(Followups[.x]), event = !!sym(Outcomes[.x])) ~ DCB_DES, upper = stats::formula(res.cox[[.x]])), trace=0))
 
