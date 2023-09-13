@@ -336,14 +336,6 @@ PS_Variables = c("DCB_DES", "Presentation", "BIF_Medina_Classification", "True_B
 ```
 
 ```{r PS Matching (All)}
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-
->>>>>>> dev
-=======
-
->>>>>>> dev
 nCores <- detectCores() - 1
 
 data_ps_bif <- data_bif %>%
@@ -352,17 +344,8 @@ data_ps_bif <- data_bif %>%
 
 set.seed(1234)
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-match.it <- matchit(DCB_DES ~ Age+ Sex+ Presentation+ BIF_Medina_Classification+ True_Bif+ Duration_Procedure+ ContrastinMLS+ Rad_Skin_Dose+ PMHx_MI+ PMHx_PCI+ PMHx_AF+ Vessel_Tx+ Heavy_Calc+ Diffuse_Dx+ Tortuosity+ denovo_VesselDiam+ denovo_LesionLgth, data = data_ps_bif, method="genetic", replace = T,  pop.size = 1000, cluster = parallel::makeCluster(nCores)) #Full matching technique
-=======
 match.it <- matchit(DCB_DES ~ Age+ Sex+ Presentation+ True_Bif+ PMHx_MI+ PMHx_PCI+ PMHx_AF+ Vessel_Tx+ Heavy_Calc+ Diffuse_Dx+ Tortuosity+ denovo_VesselDiam+ denovo_LesionLgth + PMHx_DM + Creatinine, data = data_ps_bif, method="genetic", replace = T,  pop.size = 1000, cluster = parallel::makeCluster(nCores)) #Full matching technique
 
->>>>>>> dev
-=======
-match.it <- matchit(DCB_DES ~ Age+ Sex+ Presentation+ True_Bif+ PMHx_MI+ PMHx_PCI+ PMHx_AF+ Vessel_Tx+ Heavy_Calc+ Diffuse_Dx+ Tortuosity+ denovo_VesselDiam+ denovo_LesionLgth + PMHx_DM + Creatinine, data = data_ps_bif, method="genetic", replace = T,  pop.size = 1000, cluster = parallel::makeCluster(nCores)) #Full matching technique
-
->>>>>>> dev
 a <- summary(match.it)
 
 df.match1 <- get_matches(match.it)
