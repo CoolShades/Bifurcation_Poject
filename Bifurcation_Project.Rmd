@@ -365,7 +365,7 @@ df.matchid <- get_matches(match.it) %>% select(id) %>% mutate(id = as.numeric(id
 
 df.match_All <- df.match1
 
-df.match_Full <- inner_join(data_ps_bif, df.match1, by = names(df.match1)[4:29])
+df.match_Full <- inner_join(data_bif, df.match1, by = names(df.match1)[4:29])
 ```
 
 ```{r Extract ID numbers}
@@ -427,7 +427,7 @@ data_Table <- df.match_Full %>%
   select(-id)
 
 Baseline_T <- tbl_summary(data_Table,
-            by = DCB_DES) %>%
+            by = DCB_DES, include = -subclass) %>%
   add_p() %>%
   bold_p() %>%
   add_overall() %>%
@@ -435,7 +435,40 @@ Baseline_T <- tbl_summary(data_Table,
   as_gt() 
 
 gtsave(Baseline_T, "Table1/PS_BaselineT.html")
+
 ```
+
+```{r UV_T for matched}
+UV_T <- list()
+
+Outcomes <- c("CV_Mortality", "TLR", "TLR_MI", "Composite")
+Followups <- c("CV_Mortality_FU", "TLR_FU", "TLR_MI_FU", "Composite_FU")
+
+library(doFuture)
+registerDoFuture()
+plan(multisession)
+
+foreach(i=1:4, .packages = c("foreach", "tidyverse", "gtsummary")) %dopar% {
+
+theme_gtsummary_journal(journal = "jama")
+#> Setting theme `JAMA`
+theme_gtsummary_compact()
+#> Setting theme `Compact`
+
+.GlobalEnv$UV_T[[i]] <-  gtsummary::tbl_uvregression(df.match_All,
+                 method = survival::coxph,
+                 y = survival::Surv(time = !!sym(Followups[i]), event = !!sym(Outcomes[i])),
+                 exponentiate = T,
+                 include = c(DCB_DES)) %>%
+  gtsummary::modify_header(label = paste0("**",Outcomes[i],"**", " (Univariate)")) %>%
+  gtsummary::bold_p() %>%
+  gtsummary::as_gt()
+
+gt::gtsave(.GlobalEnv$UV_T[[i]], paste0("Bifurcation_Project/UV_Tables/" , Outcomes[i], "_UV_MATCHED.html"))
+
+}
+```
+
 
 ```{r CumHaz Charts_PS_Match}
 fit1<- survfit(Surv(Mortality_FU, Mortality) ~ DCB_DES, data = df.match_All)
@@ -669,6 +702,8 @@ dev.off()
 ```
 
 ```{r Checking Assumptions for MV_Tables}
+library(coxme)
+
 data_bif_mv1 <- df.match_All %>%
   select(DCB_DES, Age, Sex, Presentation, True_Bif, PMHx_MI, PMHx_PCI, PMHx_AF, Heavy_Calc, Diffuse_Dx, Tortuosity, Tortuosity, denovo_VesselDiam, denovo_LesionLgth, Vessel_Tx, Mortality, Mortality_FU, CV_Mortality, CV_Mortality_FU, TLR, TLR_FU, TLR_MI, TLR_MI_FU, Composite, Composite_FU, Composite_wMort, Composite_wMort_FU, subclass) %>%
   drop_na() %>%
