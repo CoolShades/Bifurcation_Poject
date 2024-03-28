@@ -75,7 +75,7 @@ data_bif <- dataS %>%
             Treatment_Strat = factor(Treatmentstrategy.DESsinglevessel1DEStwovessels2DCBsingl, levels = 1:7),
             Frailty_Sc = as.numeric(frailty),
             Frailty_Grp = factor(group, levels = 0:2, labels = c("Not Frail", "Moderately Frail", "Severe Frailty")),
-            DCB_DES = relevel(factor(DCB_1DES_2, levels = 1:2, labels = c("DCB", "DES")), ref = "DES"),
+            DCB_DES = factor(DCB_1DES_2, levels = 1:2, labels = c("DCB", "DES")),
             Duration_Procedure = as.numeric(Durationofprocedure),
             Pressure_Wire = factor(Pressurewire1, levels = 0:1, labels = c("No", "Yes")),
             Imaging = factor(Imaging.IVUS1OCT2, levels = 1:2, labels = c("IVUS", "OCT")),
@@ -203,6 +203,15 @@ data_bif <- dataS %>%
             Composite_wMort_30 = case_when(Composite_wMort_FU30 < 30 & Composite_wMort == 1 ~ 1,
                                       TRUE ~ 0)
   )
+
+#set.seed(2026)
+#patients_to_remove <- data_bif %>%
+#  filter(DCB_DES == "DES") %>%
+#  sample_n(53) %>% 
+#  select(HospitalNumber)
+
+#data_bif <- data_bif %>%
+#  anti_join(patients_to_remove, by = "HospitalNumber")
 
 ```
 
@@ -354,9 +363,9 @@ data_ps_bif <- data_bif %>%
   select(DCB_DES, Age, Sex, Presentation, True_Bif, PMHx_MI, PMHx_PCI, PMHx_AF, Heavy_Calc, Diffuse_Dx, Tortuosity, PMHx_DM, Creatinine, denovo_VesselDiam, denovo_LesionLgth, Vessel_Tx, Mortality, CV_Mortality, TLR, TLR_MI, Composite, Composite_wMort, Mortality_FU, CV_Mortality_FU, TLR_FU, TLR_MI_FU, Composite_FU, Composite_wMort_FU) %>%
   drop_na(1:16) 
 
-set.seed(1234)
+set.seed(1125)
 
-match.it <- matchit(DCB_DES ~ Age+ Sex+ Presentation+ True_Bif+ PMHx_MI+ PMHx_PCI+ PMHx_AF+ Heavy_Calc+ Diffuse_Dx+ Tortuosity + PMHx_DM + Creatinine + denovo_VesselDiam + denovo_LesionLgth + Vessel_Tx, data = data_ps_bif, method="genetic", replace = T,  pop.size = 1000, cluster = parallel::makeCluster(nCores)) #Full matching technique
+match.it <- matchit(DCB_DES ~ Age+ Sex+ Presentation+ True_Bif+ PMHx_MI+ PMHx_PCI+ PMHx_AF+ Heavy_Calc+ Diffuse_Dx+ Tortuosity + PMHx_DM + Creatinine + denovo_VesselDiam + denovo_LesionLgth + Vessel_Tx, data = data_ps_bif, method="genetic", replace = F,  pop.size = 1000, cluster = parallel::makeCluster(nCores)) #Full matching technique
 
 a <- summary(match.it)
 
