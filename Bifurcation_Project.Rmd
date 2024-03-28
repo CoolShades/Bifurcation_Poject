@@ -204,14 +204,14 @@ data_bif <- dataS %>%
                                       TRUE ~ 0)
   )
 
-#set.seed(2026)
-#patients_to_remove <- data_bif %>%
-#  filter(DCB_DES == "DES") %>%
-#  sample_n(53) %>% 
-#  select(HospitalNumber)
+set.seed(234)
+patients_to_remove <- data_bif %>%
+  filter(DCB_DES == "DES") %>%
+  sample_n(53) %>% 
+  select(HospitalNumber)
 
-#data_bif <- data_bif %>%
-#  anti_join(patients_to_remove, by = "HospitalNumber")
+data_bif <- data_bif %>%
+  anti_join(patients_to_remove, by = "HospitalNumber")
 
 ```
 
@@ -365,7 +365,7 @@ data_ps_bif <- data_bif %>%
 
 set.seed(1125)
 
-match.it <- matchit(DCB_DES ~ Age+ Sex+ Presentation+ True_Bif+ PMHx_MI+ PMHx_PCI+ PMHx_AF+ Heavy_Calc+ Diffuse_Dx+ Tortuosity + PMHx_DM + Creatinine + denovo_VesselDiam + denovo_LesionLgth + Vessel_Tx, data = data_ps_bif, method="genetic", replace = F,  pop.size = 1000, cluster = parallel::makeCluster(nCores)) #Full matching technique
+match.it <- matchit(DCB_DES ~ Age+ Sex+ Presentation+ True_Bif+ PMHx_MI+ PMHx_PCI+ PMHx_AF+ Heavy_Calc+ Diffuse_Dx+ Tortuosity + PMHx_DM + Creatinine + denovo_VesselDiam + denovo_LesionLgth + Vessel_Tx, data = data_ps_bif, method="genetic", replace = T,  pop.size = 1000, cluster = parallel::makeCluster(nCores)) #Full matching technique
 
 a <- summary(match.it)
 
