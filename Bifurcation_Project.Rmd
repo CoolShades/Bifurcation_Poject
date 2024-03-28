@@ -75,7 +75,7 @@ data_bif <- dataS %>%
             Treatment_Strat = factor(Treatmentstrategy.DESsinglevessel1DEStwovessels2DCBsingl, levels = 1:7),
             Frailty_Sc = as.numeric(frailty),
             Frailty_Grp = factor(group, levels = 0:2, labels = c("Not Frail", "Moderately Frail", "Severe Frailty")),
-            DCB_DES = factor(DCB_1DES_2, levels = 1:2, labels = c("DCB", "DES")),
+            DCB_DES = relevel(factor(DCB_1DES_2, levels = 1:2, labels = c("DCB", "DES")), ref = "DES"),
             Duration_Procedure = as.numeric(Durationofprocedure),
             Pressure_Wire = factor(Pressurewire1, levels = 0:1, labels = c("No", "Yes")),
             Imaging = factor(Imaging.IVUS1OCT2, levels = 1:2, labels = c("IVUS", "OCT")),
@@ -439,34 +439,34 @@ gtsave(Baseline_T, "Table1/PS_BaselineT.html")
 ```
 
 ```{r UV_T for matched}
-UV_T <- list()
 
-Outcomes <- c("CV_Mortality", "TLR", "TLR_MI", "Composite")
-Followups <- c("CV_Mortality_FU", "TLR_FU", "TLR_MI_FU", "Composite_FU")
+library(coxme)
 
-library(doFuture)
-registerDoFuture()
-plan(multisession)
+data_bif_mv1 <- df.match_All %>%
+  select(DCB_DES, Age, Sex, Presentation, True_Bif, PMHx_MI, PMHx_PCI, PMHx_AF, Heavy_Calc, Diffuse_Dx, Tortuosity, Tortuosity, denovo_VesselDiam, denovo_LesionLgth, Vessel_Tx, Mortality, Mortality_FU, CV_Mortality, CV_Mortality_FU, TLR, TLR_FU, TLR_MI, TLR_MI_FU, Composite, Composite_FU, Composite_wMort, Composite_wMort_FU, subclass) %>%
+  drop_na() %>%
+  mutate(subclass = as.numeric(subclass)) %>%
+  mutate(Presentation = fct_relevel(Presentation, c("Stable Angina", "ACS", "STEMI")))
 
-foreach(i=1:4, .packages = c("foreach", "tidyverse", "gtsummary")) %dopar% {
+res.cox_CVMortality <- coxme(Surv(time = CV_Mortality_FU, event = CV_Mortality) ~ DCB_DES + (1|subclass), data = data_bif_mv1)
 
-theme_gtsummary_journal(journal = "jama")
-#> Setting theme `JAMA`
-theme_gtsummary_compact()
-#> Setting theme `Compact`
+res.cox_TLR <- coxme(Surv(time = TLR_FU, event = TLR) ~ DCB_DES + (1|subclass), data = data_bif_mv1)
 
-.GlobalEnv$UV_T[[i]] <-  gtsummary::tbl_uvregression(df.match_All,
-                 method = survival::coxph,
-                 y = survival::Surv(time = !!sym(Followups[i]), event = !!sym(Outcomes[i])),
-                 exponentiate = T,
-                 include = c(DCB_DES)) %>%
-  gtsummary::modify_header(label = paste0("**",Outcomes[i],"**", " (Univariate)")) %>%
-  gtsummary::bold_p() %>%
-  gtsummary::as_gt()
+res.cox_TLRMI <- coxme(Surv(time = TLR_MI_FU, event = TLR_MI) ~ DCB_DES + (1|subclass), data = data_bif_mv1)
 
-gt::gtsave(.GlobalEnv$UV_T[[i]], paste0("Bifurcation_Project/UV_Tables/" , Outcomes[i], "_UV_MATCHED.html"))
+res.cox_Comp <- coxme(Surv(time = Composite_FU, event = Composite) ~ DCB_DES + (1|subclass), data = data_bif_mv1)
 
-}
+
+A <- gtsummary::tbl_regression(res.cox_Comp, exponentiate = T) %>% as_gt()
+B <- gtsummary::tbl_regression(res.cox_TLR, exponentiate = T) %>% as_gt()
+C <- gtsummary::tbl_regression(res.cox_TLRMI, exponentiate = T) %>% as_gt()
+D <- gtsummary::tbl_regression(res.cox_CVMortality, exponentiate = T) %>% as_gt()
+
+gtsave(A, "UV_Tables/Composite_Matched_UV.html")
+gtsave(B, "UV_Tables/TLR_Matched_UV.html")
+gtsave(C, "UV_Tables/TLRMI_Matched_UV.html")
+gtsave(D, "UV_Tables/CVMortality_Matched_UV.html")
+
 ```
 
 
