@@ -10,7 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r Ensure Folders Exist, eval=FALSE, include=FALSE}
-Folders_Req <- c("Data", "Normality_Testing", "Table1", "UV_Tables", "MV_Tables", "Cum_Haz_Plots_UnMatched", "Matching_Files", "Cum_Haz_Plots_Matched", "Landmark", "Assumptions")
+Folders_Req <- c("Data", "Normality_Testing", "Table1", "UV_Tables", "MV_Tables", "Cum_Haz_Plots_UnMatched", "Matching_Files", "Cum_Haz_Plots_Matched", "Landmark", "CoxAssumptions", "SensitivityTBif")
 
 for (i in 1:length(Folders_Req)) {
 
@@ -215,6 +215,11 @@ data_bif <- dataS %>%
 #data_bif <- data_bif %>%
 #  anti_join(patients_to_remove, by = "HospitalNumber")
 
+levels(data_bif$Vessel_Tx)[levels(data_bif$Vessel_Tx)=='Graft'] <- NA
+
+data_bif_swap <- data_bif %>%
+  mutate(DCB_DES = fct_rev(DCB_DES))
+
 ```
 
 ```{r Normality Testing}
@@ -291,7 +296,7 @@ theme_gtsummary_journal(journal = "jama")
 theme_gtsummary_compact()
 #> Setting theme `Compact`
 
-.GlobalEnv$UV_T[[i]] <-  gtsummary::tbl_uvregression(data_bif,
+.GlobalEnv$UV_T[[i]] <-  gtsummary::tbl_uvregression(data_bif_swap,
                  method = survival::coxph,
                  y = survival::Surv(time = !!sym(Followups[i]), event = !!sym(Outcomes[i])),
                  exponentiate = T,
@@ -361,9 +366,10 @@ PS_Variables = c("DCB_DES", "Presentation", "BIF_Medina_Classification", "True_B
 ```{r PS Matching (All)}
 nCores <- detectCores() - 1
 
-data_ps_bif <- data_bif %>%
+data_ps_bif <- data_bif_swap %>%
   select(DCB_DES, Age, Sex, Presentation, True_Bif, PMHx_MI, PMHx_PCI, PMHx_AF, PMHx_HTN, PMHx_PVD, PMHx_CVE, Heavy_Calc, Diffuse_Dx, Tortuosity, PMHx_DM, Creatinine, denovo_VesselDiam, denovo_LesionLgth, Vessel_Tx, Mortality, CV_Mortality, TLR, TLR_MI, Composite, Composite_wMort, Mortality_FU, CV_Mortality_FU, TLR_FU, TLR_MI_FU, Composite_FU, Composite_wMort_FU) %>%
-  drop_na(1:19) 
+  mutate(DCB_DES = fct_relevel(DCB_DES,c("DES", "DCB"))) %>%
+  drop_na(1:19)
 
 set.seed(1125)
 
@@ -492,7 +498,7 @@ plot2 <- ggsurvplot(fit2, fun = "cumhaz", pval = TRUE, conf.int = TRUE,
 
 fit3<- survfit(Surv(TLR_FU, TLR) ~ DCB_DES, data = df.match_All)
 plot3 <- ggsurvplot(fit3, fun = "cumhaz", pval = TRUE, conf.int = TRUE,
-           risk.table = T, risk.table.y.text.col = TRUE, ylim=c(0,0.3), xscale="d_y", legend.labs = c("DES", "DCB"), xlab = "Years Since Index Procedure", ylab = "Probability of Incurring TLR", palette = c("#fba30c", "#0077b8"), theme = "lancet", break.time.by	= 365.25, pval.coord = c(0,0.1), legend.title = "")  
+           risk.table = T, risk.table.y.text.col = TRUE, ylim=c(0,0.3), xscale="d_y", legend.labs = c("DES", "DCB"), xlab = "Years Since Index Procedure", ylab = "Probability of Incurring TLR", palette = c("#fba30c", "#0077b8"), theme = "lancet", break.time.by	= 365.25, pval.coord = c(0,0.15), legend.title = "")  
 
 fit4<- survfit(Surv(TLR_MI_FU, TLR_MI) ~ DCB_DES, data = df.match_All)
 plot4 <- ggsurvplot(fit4, fun = "cumhaz", pval = TRUE, conf.int = TRUE,
@@ -723,13 +729,13 @@ data_bif_mv1 <- df.match_All %>%
 
 #res.cox_Mortality <- coxme(Surv(time = Mortality_FU, event = Mortality) ~ DCB_DES + Age+ Sex+ Presentation+ True_Bif+ PMHx_MI+ PMHx_PCI+ PMHx_AF+ Heavy_Calc+ Diffuse_Dx+ Tortuosity+ denovo_VesselDiam+ denovo_LesionLgth, + (1|subclass), data = data_bif_mv1)
 
-res.cox_Comp <- coxme(Surv(time = Composite_FU, event = Composite) ~ DCB_DES + Age+ Sex+ Presentation+ True_Bif+ PMHx_MI+ PMHx_PCI+ PMHx_AF+ Heavy_Calc+ Diffuse_Dx+ Tortuosity +denovo_VesselDiam+ denovo_LesionLgth+ (1|subclass), data = data_bif_mv1)
+res.cox_Comp <- coxme(Surv(time = Composite_FU, event = Composite) ~ DCB_DES + Age+ Sex+ Presentation+ Vessel_Tx+ True_Bif+ PMHx_MI+ PMHx_PCI+ PMHx_AF+ Heavy_Calc+ Diffuse_Dx+ Tortuosity +denovo_VesselDiam+ denovo_LesionLgth+ (1|subclass), data = data_bif_mv1)
 
-res.cox_TLR <- coxme(Surv(time = TLR_FU, event = TLR) ~ DCB_DES + Age+ Sex+ Presentation+ True_Bif+ PMHx_MI+ PMHx_PCI+ PMHx_AF +Heavy_Calc+ Diffuse_Dx+ Tortuosity +denovo_VesselDiam+ denovo_LesionLgth+ (1|subclass), data = data_bif_mv1)
+res.cox_TLR <- coxme(Surv(time = TLR_FU, event = TLR) ~ DCB_DES + Age+ Sex+ Presentation+ Vessel_Tx+ True_Bif+ PMHx_MI+ PMHx_PCI+ PMHx_AF +Heavy_Calc+ Diffuse_Dx+ Tortuosity +denovo_VesselDiam+ denovo_LesionLgth+ (1|subclass), data = data_bif_mv1)
 
-res.cox_TLRMI <- coxme(Surv(time = TLR_MI_FU, event = TLR_MI) ~ DCB_DES + Age+ Sex+ Presentation+ True_Bif+ PMHx_MI+ PMHx_PCI+ PMHx_AF + Heavy_Calc+ Diffuse_Dx+ Tortuosity +denovo_VesselDiam+ denovo_LesionLgth+ (1|subclass), data = data_bif_mv1)
+res.cox_TLRMI <- coxme(Surv(time = TLR_MI_FU, event = TLR_MI) ~ DCB_DES + Age+ Sex+ Presentation+ Vessel_Tx+ True_Bif+ PMHx_MI+ PMHx_PCI+ PMHx_AF + Heavy_Calc+ Diffuse_Dx+ Tortuosity +denovo_VesselDiam+ denovo_LesionLgth+ (1|subclass), data = data_bif_mv1)
 
-res.cox_CVMortality <- coxme(Surv(time = CV_Mortality_FU, event = CV_Mortality) ~ DCB_DES + Age+ Sex+ Presentation+ True_Bif+ Heavy_Calc+ Diffuse_Dx+ Tortuosity + denovo_VesselDiam + denovo_LesionLgth+ (1|subclass), data = data_bif_mv1)
+res.cox_CVMortality <- coxme(Surv(time = CV_Mortality_FU, event = CV_Mortality) ~ DCB_DES + Age+ Sex+ Presentation+ Vessel_Tx+ True_Bif+ Heavy_Calc+ Diffuse_Dx+ Tortuosity + denovo_VesselDiam + denovo_LesionLgth+ (1|subclass), data = data_bif_mv1)
 
 #res.cox_CompwMort <- coxme(Surv(time = Composite_wMort_FU, event = Composite_wMort) ~ DCB_DES + Age+ Sex+ Presentation+ True_Bif+ PMHx_MI+ PMHx_PCI+ PMHx_AF+ Heavy_Calc+ Diffuse_Dx+ Tortuosity +denovo_VesselDiam+ denovo_LesionLgth+ (1|subclass), data = data_bif_mv1)
 
