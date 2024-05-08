@@ -104,6 +104,9 @@ data_bif <- dataS %>%
             Smok_Stat = factor(smokingstatusneversmoked0currentexsmoker1, levels = 0:1, labels = c("Never Smoked", "Current/Ex Smoker")),
             Creatinine = as.numeric(CreatinineLevel),
             Vessel_Tx = factor(VesseltreatedinnumbersLMS1LAD2LCx3RCA4Graft5, levels = 1:5, labels = c("LMS", "LAD", "LCx", "RCA", "Graft")),
+            Vessel_Tx = fct_collapse(Vessel_Tx,
+                                   LMS = "LMS",
+                                   Other = c("LAD", "LCx", "RCA", "Graft")),
             Heavy_Calc = factor(Heavycalcification, levels = 0:1, labels = c("No", "Yes")),
             Diffuse_Dx = factor(Diffusedisease, levels = 0:1, labels = c("No", "Yes")),
             Tortuosity = factor(Tortuosity, levels = 0:1, labels = c("No", "Yes")),
@@ -215,7 +218,7 @@ data_bif <- dataS %>%
 #data_bif <- data_bif %>%
 #  anti_join(patients_to_remove, by = "HospitalNumber")
 
-levels(data_bif$Vessel_Tx)[levels(data_bif$Vessel_Tx)=='Graft'] <- NA
+# levels(data_bif$Vessel_Tx)[levels(data_bif$Vessel_Tx)=='Graft'] <- NA
 
 data_bif_swap <- data_bif %>%
   mutate(DCB_DES = fct_rev(DCB_DES))
@@ -373,7 +376,7 @@ data_ps_bif <- data_bif_swap %>%
 
 set.seed(1125)
 
-match.it <- matchit(DCB_DES ~ Age+ Sex+ True_Bif+ PMHx_PCI+ PMHx_AF+ Creatinine, data = data_ps_bif, method="genetic", replace = T,  pop.size = 1000, cluster = parallel::makeCluster(nCores)) #Full matching technique
+match.it <- matchit(DCB_DES ~ Age+ Sex+ True_Bif+ PMHx_MI+ PMHx_AF+ PMHx_DM+ Presentation+ Creatinine + Vessel_Tx, data = data_ps_bif, method="genetic", replace = T,  pop.size = 1000, cluster = parallel::makeCluster(nCores)) #Full matching technique
 
 a <- summary(match.it)
 
